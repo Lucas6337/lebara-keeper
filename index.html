@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Lebara 保号助手 - 极简流量消耗工具</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #f8fafc; color: #0f172a; line-height: 1.5;
+      padding: 20px 16px; display: flex; justify-content: center;
+    }
+    .wrap { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 14px; }
+    .card {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+      padding: 18px; box-shadow: 0 1px 2px rgba(15,23,42,.04);
+    }
+    .header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 42px; height: 42px; border-radius: 12px; background: #002855; color: #fff;
+      display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px;
+    }
+    h1 { font-size: 17px; font-weight: 700; }
+    .sub { font-size: 12px; color: #64748b; margin-top: 2px; }
+    .badge {
+      font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+      background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; white-space: nowrap;
+    }
+    .tabs {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 6px;
+    }
+    .tab-btn {
+      border: 0; background: transparent; padding: 8px 6px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; color: #475569; cursor: pointer;
+    }
+    .tab-btn.active { background: #002855; color: #fff; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .stat { background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 12px; }
+    .stat-label { font-size: 12px; color: #64748b; }
+    .stat-val { font-size: 14px; font-weight: 600; margin-top: 4px; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .seg { display: inline-flex; background: #f1f5f9; padding: 4px; border-radius: 8px; gap: 4px; }
+    .seg button {
+      border: 0; background: transparent; padding: 5px 10px; border-radius: 6px;
+      font-size: 12px; font-weight: 600; color: #475569; cursor: pointer;
+    }
+    .seg button.on { background: #fff; color: #0f172a; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+    .primary-btn {
+      width: 100%; border: 0; background: #002855; color: #fff; border-radius: 12px;
+      padding: 14px; font-size: 15px; font-weight: 600; cursor: pointer;
+    }
+    .primary-btn:disabled { opacity: .65; cursor: not-allowed; }
+    .result { margin-top: 14px; padding: 12px 14px; border-radius: 12px; border: 1px solid; font-size: 13px; }
+    .res-ok { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+    .res-info { background: #f0f9ff; border-color: #bae6fd; color: #075985; }
+    .res-err { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    .res-head { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 4px; }
+    .res-body { font-size: 12px; line-height: 1.5; }
+    .warn { background: #fffbeb; border: 1px solid #fde68a; color: #78350f; }
+    .warn h2 { font-size: 14px; margin-bottom: 8px; }
+    .warn ul, .list-ol { padding-left: 18px; font-size: 12px; line-height: 1.65; }
+    code { background: rgba(15,23,42,.08); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+    .hist-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .hist-head h2 { font-size: 14px; }
+    .link-btn { border: 0; background: transparent; color: #94a3b8; font-size: 12px; cursor: pointer; }
+    .hist-item {
+      display: flex; justify-content: space-between; padding: 8px 0;
+      border-bottom: 1px solid #f1f5f9; font-size: 12px;
+    }
+    .hist-item:last-child { border-bottom: 0; }
+    .box { background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 12px; margin-top: 10px; font-size: 12px; }
+    .box-title { font-weight: 600; margin-bottom: 4px; color: #0f172a; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="card header">
+      <div class="brand">
+        <div class="logo">L</div>
+        <div>
+          <h1>Lebara UK 保号助手</h1>
+          <div class="sub">90 天活跃周期 · 按 1 KB 计费（£93/GB）</div>
+        </div>
+      </div>
+      <span id="envBadge" class="badge">就绪</span>
+    </header>
+
+    <nav class="tabs">
+      <button type="button" class="tab-btn active" data-tab="run">保号执行</button>
+      <button type="button" class="tab-btn" data-tab="cache">防缓存原理</button>
+      <button type="button" class="tab-btn" data-tab="deploy">部署步骤</button>
+    </nav>
+
+    <section id="panelRun" style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card">
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-label">上次成功拉取</div>
+            <div id="lastRunText" class="stat-val">暂无记录</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">下次截止（90天）</div>
+            <div id="nextDueText" class="stat-val">--</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <span style="font-size:14px;font-weight:500;">拉取次数</span>
+          <div class="seg">
+            <button type="button" id="rounds1Btn" class="on">1 次（约 150 KB）</button>
+            <button type="button" id="rounds2Btn">2 次（约 300 KB）</button>
+          </div>
+        </div>
+
+        <button id="runBtn" type="button" class="primary-btn">开始保号（拉取 payload.txt）</button>
+
+        <div id="resultBox" class="result hidden">
+          <div class="res-head">
+            <span id="resultTitle"></span>
+            <span id="resultTime" style="font-weight:400;font-size:12px;"></span>
+          </div>
+          <div id="resultDetail" class="res-body"></div>
+        </div>
+      </div>
+
+      <div class="card warn">
+        <h2>防后台偷跑清单（中国大陆漫游 £93/GB）</h2>
+        <ul>
+          <li>在 Wi-Fi 下提前打开本页并加入书签。</li>
+          <li>关闭除当前浏览器外所有应用的蜂窝数据权限（iPhone 需关闭「Wi-Fi 助理」和 iCloud 蜂窝同步）。</li>
+          <li>关闭 Wi-Fi，将默认数据卡切换为 Lebara 并开启「数据漫游」（APN：<code>uk.lebara.mobi</code>）。</li>
+          <li>提示拉取成功后<strong>立即关闭 Lebara 移动数据</strong>，并拨打 <code>*#1345#</code> 核对真实扣费（约 £0.01–£0.03），<strong>以余额变动为准</strong>。</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="hist-head">
+          <h2>本地拉取记录（仅记录真实成功）</h2>
+          <button id="clearHistoryBtn" type="button" class="link-btn">清空记录</button>
+        </div>
+        <div id="historyList" style="font-size:12px;color:#64748b;">暂无执行记录</div>
+      </div>
+    </section>
+
+    <section id="panelCache" class="card hidden">
+      <h2 style="font-size:15px;margin-bottom:8px;">三重防缓存机制</h2>
+      <div class="box">
+        <div class="box-title">1. 动态 URL 参数</div>
+        每次请求拼接时间戳与随机串 <code>payload.txt?t=...&amp;r=...</code>，绕过浏览器与 CDN 缓存。
+      </div>
+      <div class="box">
+        <div class="box-title">2. HTTP 不缓存指令</div>
+        使用 <code>cache: 'no-store'</code> 与 <code>Cache-Control: no-cache, no-store</code> 请求头。
+      </div>
+      <div class="box">
+        <div class="box-title">3. 不可压缩随机载荷</div>
+        <code>payload.txt</code> 为约 150 KB 随机字符，即使经过服务器 gzip 压缩仍约有 115 KB 实际传输量。若文件缺失会直接报错，不会静默回退。
+      </div>
+    </section>
+
+    <section id="panelDeploy" class="card hidden">
+      <h2 style="font-size:15px;margin-bottom:8px;">生成与部署步骤</h2>
+      <div class="box">
+        <div class="box-title">1. 生成 payload.txt（约 150 KB）</div>
+        <div style="margin-top:4px;">macOS / Linux：<code>openssl rand -base64 115000 &gt; payload.txt</code></div>
+      </div>
+      <div class="box">
+        <div class="box-title">2. 上传 Cloudflare Pages（国内直连推荐）</div>
+        <ol class="list-ol">
+          <li>登录 Cloudflare Dashboard → <strong>Workers &amp; Pages → Create → Pages → Upload assets</strong>。</li>
+          <li>上传包含 <code>index.html</code> 与 <code>payload.txt</code> 的文件夹。</li>
+          <li>通过生成的 <code>*.pages.dev</code> 链接访问即可。</li>
+        </ol>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      const STORAGE_KEY = 'lebara_keeper_history_v1';
+      const RATE_PER_GB_GBP = 93;
+      const BYTES_PER_GB = 1024 * 1024 * 1024;
+      let rounds = 1;
+      let isRunning = false;
+
+      const envBadge = document.getElementById('envBadge');
+      const lastRunText = document.getElementById('lastRunText');
+      const nextDueText = document.getElementById('nextDueText');
+      const rounds1Btn = document.getElementById('rounds1Btn');
+      const rounds2Btn = document.getElementById('rounds2Btn');
+      const runBtn = document.getElementById('runBtn');
+      const resultBox = document.getElementById('resultBox');
+      const resultTitle = document.getElementById('resultTitle');
+      const resultTime = document.getElementById('resultTime');
+      const resultDetail = document.getElementById('resultDetail');
+      const historyList = document.getElementById('historyList');
+      const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+      const tabButtons = document.querySelectorAll('.tab-btn');
+      const panels = {
+        run: document.getElementById('panelRun'),
+        cache: document.getElementById('panelCache'),
+        deploy: document.getElementById('panelDeploy')
+      };
+
+      function loadHistory() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch (e) { return []; }
+      }
+      function saveHistory(items) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(0, 20))); } catch (e) {}
+      }
+      function fmt(ts) {
+        const d = new Date(ts);
+        const p = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+      }
+      function renderHistory() {
+        const items = loadHistory();
+        if (!items.length) {
+          lastRunText.textContent = '暂无记录';
+          nextDueText.textContent = '--';
+          historyList.textContent = '暂无执行记录';
+          return;
+        }
+        const latest = items[0];
+        lastRunText.textContent = fmt(latest.timestamp).split(' ')[0];
+        const due = latest.timestamp + 90 * 86400000;
+        const left = Math.max(0, Math.ceil((due - Date.now()) / 86400000));
+        nextDueText.textContent = `${fmt(due).split(' ')[0]}（剩 ${left} 天）`;
+        historyList.innerHTML = items.map(it => `
+          <div class="hist-item">
+            <span><strong>${it.kb} KB</strong>（${it.rounds} 次）</span>
+            <span>${fmt(it.timestamp)} · <strong style="color:#047857;">≈ £${it.cost}</strong></span>
+          </div>
+        `).join('');
+      }
+      function showResult(cls, title, detail) {
+        resultBox.className = `result ${cls}`;
+        resultTitle.textContent = title;
+        resultTime.textContent = fmt(Date.now()).split(' ')[1];
+        resultDetail.textContent = detail;
+      }
+      function setRounds(n) {
+        rounds = n;
+        rounds1Btn.classList.toggle('on', n === 1);
+        rounds2Btn.classList.toggle('on', n === 2);
+      }
+      async function fetchNoCache(url) {
+        const res = await fetch(url, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.blob()).size;
+      }
+      async function runKeepAlive() {
+        if (isRunning) return;
+        if (!/^https?:$/.test(location.protocol)) {
+          envBadge.textContent = '本地环境';
+          showResult('res-info', '本地预览未发起请求', '当前不是 http/https 环境，不会消耗流量，也不会写入保号记录。请部署到 Cloudflare Pages 或 GitHub Pages 后使用。');
+          return;
+        }
+
+        isRunning = true;
+        runBtn.disabled = true;
+        envBadge.textContent = '请求中...';
+
+        try {
+          let bytes = 0;
+          for (let i = 0; i < rounds; i++) {
+            bytes += await fetchNoCache(`payload.txt?t=${Date.now()}&r=${Math.random().toString(36).slice(2, 9)}&i=${i}`);
+          }
+          const kb = (bytes / 1024).toFixed(1);
+          const cost = ((bytes / BYTES_PER_GB) * RATE_PER_GB_GBP).toFixed(4);
+          const hist = loadHistory();
+          hist.unshift({ timestamp: Date.now(), kb, cost, rounds });
+          saveHistory(hist);
+          renderHistory();
+          envBadge.textContent = '已完成';
+          showResult('res-ok', `已拉取 payload.txt（${kb} KB）`, `按 £93/GB 估算约 £${cost}。请立即关闭 Lebara 移动数据，并拨打 *#1345# 确认余额真实扣费。`);
+        } catch (err) {
+          envBadge.textContent = '失败';
+          showResult('res-err', '拉取 payload.txt 失败', `原因：${err.message}。本次未计入保号记录，请确认 payload.txt 已放在同级目录且网络畅通。`);
+        } finally {
+          isRunning = false;
+          runBtn.disabled = false;
+        }
+      }
+
+      tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.getAttribute('data-tab');
+          tabButtons.forEach(b => b.classList.toggle('active', b === btn));
+          Object.keys(panels).forEach(k => {
+            const el = panels[k];
+            const active = k === target;
+            el.classList.toggle('hidden', !active);
+            // panelRun uses inline display:flex, so .hidden alone would not hide it
+            el.style.display = active ? (k === 'run' ? 'flex' : 'block') : 'none';
+          });
+        });
+      });
+
+      rounds1Btn.addEventListener('click', () => setRounds(1));
+      rounds2Btn.addEventListener('click', () => setRounds(2));
+      runBtn.addEventListener('click', runKeepAlive);
+      clearHistoryBtn.addEventListener('click', () => { saveHistory([]); renderHistory(); });
+      renderHistory();
+    })();
+  </script>
+</body>
+</html>
